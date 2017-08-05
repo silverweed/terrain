@@ -4,7 +4,8 @@ Experimenting with destructible terrain in SFML
 # Requirements
 
 1. A C++14-enabled compiler (makefile assumes g++)  
-2. SFML (best if >= 2.4)
+2. SFML (best if >= 2.4)  
+3. Currently only works on Linux
 
 # Howto
 
