@@ -4,7 +4,7 @@ LDFLAGS = -lsfml-graphics -lsfml-window -lsfml-system -lpthread -lX11
 
 all: main
 
-main: main.o Terrain.o Physics.o FPSCounter.o Renderer.hpp
+main: main.o Terrain.o Physics.o FPSCounter.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 %.o: %.cpp Terrain.hpp Physics.hpp Renderer.hpp utils.hpp
