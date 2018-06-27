@@ -1,15 +1,41 @@
 #include "Physics.hpp"
-#include <algorithm>
+#include <cstdio>
+#include <iostream>
 
-Physics::Physics(const Terrain& terr) : terrain(terr) {}
+Physics::Physics(const Terrain& terr, std::mutex& mtx)
+	: terrain(terr)
+	, mtx(mtx)
+{}
 
-void Physics::add(const PhysObj& obj) {
+void Physics::add(const PhysObj& obj)
+{
 	objects.emplace_back(obj);
+	activeObjIdx.emplace_back(objects.size() - 1);
 }
 
-void Physics::step(float delta) {
-	std::for_each(objects.begin(), objects.end(), [this, delta] (auto& obj) {
-		obj.position += obj.velocity * delta;
+static bool _shouldBeMadeInactive(const PhysObj& obj)
+{
+	return sqrlength(obj.velocity) < 1 || obj.position.y < 0 || obj.position.y > 10000;
+}
+
+void Physics::step(float delta)
+{
+	mtx.lock();
+	std::cerr << "objects: " << objects.size() << " (active: " << activeObjIdx.size() << ")\n";
+	auto write = activeObjIdx.begin();
+	for (auto read = write; read != activeObjIdx.end(); ++read) {
+		auto& obj = objects[*read];
+
+		if (_shouldBeMadeInactive(obj)) {
+			continue;
+		}
+
+		if (read != write)
+			*write = std::move(*read);
+		++write;
+
+		obj.position += obj.velocity * delta + 0.5f * obj.acceleration * delta * delta;
+
 		// Check collision
 		int ix = std::max(0, std::min(int(terrain.getSize().x), int(obj.position.x))),
 		    iy = std::max(0, std::min(int(terrain.getSize().y), int(obj.position.y)));
@@ -30,7 +56,11 @@ void Physics::step(float delta) {
 					step *= 1.05;
 				} while (terrain.isSolid(ix, iy));
 			}
+		} else {
+			obj.velocity += obj.acceleration * delta;
 		}
-		obj.velocity += obj.acceleration * delta;
-	});
+	}
+	mtx.unlock();
+
+	activeObjIdx.erase(write, activeObjIdx.end());
 }
